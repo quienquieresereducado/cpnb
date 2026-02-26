@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>¿Quién quiere ser Millonario?</title>
+    <!-- 1. Solo debe haber UNA línea de importación de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* --- ESTILOS GENERALES Y FONDO --- */
@@ -31,7 +32,7 @@
             position: relative;
         }
 
-        /* --- ESCALERA DE PREMIOS (Derecha en PC, Arriba en Móvil) --- */
+        /* --- ESCALERA DE PREMIOS --- */
         .money-ladder-container {
             display: flex;
             width: 100%;
@@ -40,7 +41,7 @@
         }
 
         .money-ladder {
-            display: none; /* Oculto en móvil por defecto */
+            display: none;
             background: rgba(0, 0, 0, 0.6);
             border: 1px solid #444;
             border-radius: 10px;
@@ -52,7 +53,7 @@
         .ladder-step {
             padding: 2px 5px;
             font-size: 0.9rem;
-            color: #d4af37; /* Dorado apagado */
+            color: #d4af37;
             display: flex;
             justify-content: space-between;
         }
@@ -62,10 +63,6 @@
             color: #000;
             font-weight: bold;
             border-radius: 4px;
-        }
-
-        .ladder-step.safe {
-            color: white; /* Milestones */
         }
 
         /* --- LOGO Y TÍTULO --- */
@@ -101,7 +98,7 @@
         .question-box {
             background: linear-gradient(to bottom, #000046, #000000);
             border: 2px solid #fff;
-            border-radius: 50px; /* Bordes muy redondeados */
+            border-radius: 50px;
             padding: 30px 50px;
             text-align: center;
             font-size: 1.3rem;
@@ -109,7 +106,6 @@
             position: relative;
         }
 
-        /* Decoración hexagonal en los lados de la pregunta */
         .question-box::before, .question-box::after {
             content: '';
             position: absolute;
@@ -166,7 +162,6 @@
         
         .option-btn:hover .option-letter { color: #000; }
 
-        /* Estados de respuesta */
         .option-btn.correct {
             background: linear-gradient(to bottom, #2ecc71, #27ae60) !important;
             color: white !important;
@@ -184,7 +179,6 @@
             100% { opacity: 1; }
         }
 
-        /* --- PANTALLAS DE ESTADO --- */
         .loader, .game-over {
             text-align: center;
             margin-top: 50px;
@@ -197,9 +191,8 @@
             text-shadow: 0 0 10px #d4af37;
         }
 
-        /* --- RESPONSIVE (MÓVIL) --- */
         @media (max-width: 768px) {
-            .money-ladder { display: none; } /* Ocultar escalera lateral en móvil */
+            .money-ladder { display: none; }
             .options-grid { grid-template-columns: 1fr; }
             .question-box { padding: 20px; font-size: 1.1rem; }
             .logo-text { font-size: 1.8rem; }
@@ -213,15 +206,10 @@
 <body>
 
     <div class="game-wrapper">
-        
-        <!-- Escalera de premios lateral -->
         <div class="money-ladder-container">
-            <div class="money-ladder" id="ladder-ui">
-                <!-- Se llena con JS -->
-            </div>
+            <div class="money-ladder" id="ladder-ui"></div>
 
             <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center;">
-                
                 <div class="logo-area">
                     <h1 class="logo-text">¿QUIÉN QUIERE SER<br>MILLONARIO?</h1>
                     <div class="logo-sub">Edición Web</div>
@@ -248,28 +236,27 @@
                     <h2 id="end-message"></h2>
                     <button class="option-btn" onclick="location.reload()" style="text-align:center; justify-content:center; display:inline-block; width: auto; padding: 10px 30px;">Jugar de nuevo</button>
                 </div>
-
             </div>
         </div>
     </div>
 
     <script>
-        // --- CONFIGURACIÓN ---
-        // ¡NO OLVIDES PEGAR TUS CLAVES AQUÍ!
+        // --- 2. CONFIGURACIÓN DE SUPABASE (SOLO UNA VEZ) ---
         const SUPABASE_URL = 'TU_SUPABASE_URL'; 
         const SUPABASE_KEY = 'TU_SUPABASE_KEY';
+        
+        // Inicializamos el cliente
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // --- ESTADO DEL JUEGO ---
         let currentLevel = 1;
         let currentPrize = 0;
         let currentQuestionData = null;
-        let allLevels = []; // Para guardar la escalera de premios
+        let allLevels = [];
 
         // --- FUNCIONES ---
 
         async function initGame() {
-            // Cargamos todas las preguntas para construir la escalera visual
             const { data, error } = await supabase
                 .from('preguntas')
                 .select('*')
@@ -277,7 +264,7 @@
 
             if (error) {
                 console.error("Error cargando preguntas:", error);
-                document.getElementById('loader').innerText = "Error de conexión con la base de datos.";
+                document.getElementById('loader').innerText = "Error de conexión.";
                 return;
             }
 
@@ -290,7 +277,6 @@
             const ladderContainer = document.getElementById('ladder-ui');
             ladderContainer.innerHTML = '';
             
-            // Invertimos el orden para que el premio mayor esté arriba
             [...allLevels].reverse().forEach(level => {
                 const step = document.createElement('div');
                 step.className = 'ladder-step';
@@ -301,10 +287,7 @@
         }
 
         function updateLadderUI() {
-            // Quitar clase active de todos
             document.querySelectorAll('.ladder-step').forEach(el => el.classList.remove('active'));
-            
-            // Activar el actual
             const currentStep = document.getElementById(`ladder-step-${currentLevel}`);
             if(currentStep) currentStep.classList.add('active');
         }
@@ -314,7 +297,6 @@
             document.getElementById('question-area').style.display = 'none';
             updateLadderUI();
 
-            // Buscar pregunta del nivel actual
             const question = allLevels.find(q => q.nivel === currentLevel);
 
             if (!question) {
@@ -324,7 +306,6 @@
 
             currentQuestionData = question;
             
-            // Rellenar interfaz
             document.getElementById('question-text').innerText = question.pregunta;
             document.getElementById('opt-a').innerText = question.opcion_a;
             document.getElementById('opt-b').innerText = question.opcion_b;
@@ -332,16 +313,14 @@
             document.getElementById('opt-d').innerText = question.opcion_d;
             
             document.getElementById('loader').style.display = 'none';
-            document.getElementById('question-area').style.display = 'flex'; // Flex para centrar
+            document.getElementById('question-area').style.display = 'flex';
         }
 
         function checkAnswer(selectedOption) {
             const buttons = document.querySelectorAll('.option-btn');
-            buttons.forEach(btn => btn.disabled = true); // Bloquear clicks
+            buttons.forEach(btn => btn.disabled = true);
 
             if (selectedOption === currentQuestionData.correcta) {
-                // CORRECTO
-                // Buscar el botón clickeado y ponerlo verde
                 buttons.forEach(btn => {
                     if(btn.innerHTML.includes(`<span class="option-letter">${selectedOption}:</span>`)) {
                         btn.classList.add('correct');
@@ -355,13 +334,10 @@
                     loadQuestion();
                 }, 2000);
             } else {
-                // INCORRECTO
                 buttons.forEach(btn => {
-                    // Marcar el que eligió mal en rojo
                     if(btn.innerHTML.includes(`<span class="option-letter">${selectedOption}:</span>`)) {
                         btn.classList.add('wrong');
                     }
-                    // Mostrar cual era la correcta en verde
                     if(btn.innerHTML.includes(`<span class="option-letter">${currentQuestionData.correcta}:</span>`)) {
                         btn.classList.add('correct');
                     }
@@ -380,7 +356,6 @@
 
         // Iniciar
         initGame();
-
     </script>
 </body>
 </html>
