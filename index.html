@@ -6,191 +6,370 @@
     <title>¿Quién quiere ser Millonario?</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* --- ESTILOS GENERALES Y FONDO --- */
         body {
-            background: radial-gradient(circle, #000044, #000000);
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #1a237e 0%, #0d1b2a 60%, #000000 100%);
             color: white;
             font-family: 'Verdana', sans-serif;
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Contenedor Principal */
+        .game-wrapper {
+            width: 100%;
+            max-width: 1000px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            margin: 0;
             padding: 20px;
+            position: relative;
         }
 
-        h1 { color: #f1c40f; text-shadow: 2px 2px #000; }
+        /* --- ESCALERA DE PREMIOS (Derecha en PC, Arriba en Móvil) --- */
+        .money-ladder-container {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
 
-        .game-container {
+        .money-ladder {
+            display: none; /* Oculto en móvil por defecto */
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 10px;
+            width: 150px;
+            text-align: right;
+        }
+
+        .ladder-step {
+            padding: 2px 5px;
+            font-size: 0.9rem;
+            color: #d4af37; /* Dorado apagado */
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ladder-step.active {
+            background: #d4af37;
+            color: #000;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        .ladder-step.safe {
+            color: white; /* Milestones */
+        }
+
+        /* --- LOGO Y TÍTULO --- */
+        .logo-area {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo-text {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 10px #d4af37, 0 0 20px #d4af37;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+
+        .logo-sub {
+            color: #d4af37;
+            font-size: 1rem;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        /* --- CAJA DE PREGUNTA --- */
+        .question-container {
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .question-box {
+            background: linear-gradient(to bottom, #000046, #000000);
+            border: 2px solid #fff;
+            border-radius: 50px; /* Bordes muy redondeados */
+            padding: 30px 50px;
+            text-align: center;
+            font-size: 1.3rem;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            position: relative;
+        }
+
+        /* Decoración hexagonal en los lados de la pregunta */
+        .question-box::before, .question-box::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            transform: translateY(-50%) rotate(45deg);
+        }
+        .question-box::before { left: -15px; border-right: none; border-top: none;}
+        .question-box::after { right: -15px; border-left: none; border-bottom: none;}
+
+        /* --- BOTONES DE RESPUESTA --- */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
             width: 100%;
             max-width: 800px;
         }
 
-        .money-ladder {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            text-align: right;
-            font-weight: bold;
-            color: #f1c40f;
-        }
-
-        .question-box {
-            background: #000066;
-            border: 2px solid white;
-            border-radius: 15px;
-            padding: 30px;
-            margin: 20px 0;
-            font-size: 1.2rem;
-            box-shadow: 0 0 15px rgba(255,255,255,0.2);
-        }
-
-        .options-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        button.option-btn {
-            background: linear-gradient(to bottom, #000066, #000033);
-            border: 2px solid white;
+        .option-btn {
+            background: linear-gradient(to bottom, #000066, #000022);
+            border: 2px solid #fff;
             color: white;
-            padding: 15px;
-            border-radius: 25px;
+            padding: 15px 20px;
+            border-radius: 30px;
             cursor: pointer;
-            font-size: 1rem;
-            transition: transform 0.1s;
+            font-size: 1.1rem;
+            font-family: 'Verdana', sans-serif;
+            text-align: left;
+            position: relative;
+            transition: all 0.2s;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
         }
 
-        button.option-btn:hover {
-            background: #000088;
-            transform: scale(1.02);
+        .option-btn:hover:not(:disabled) {
+            background: linear-gradient(to bottom, #d4af37, #b8860b);
+            color: #000;
+            border-color: #fff;
+            cursor: pointer;
         }
 
-        button.option-btn.correct { background: green !important; }
-        button.option-btn.wrong { background: red !important; }
+        .option-btn:disabled {
+            cursor: default;
+            opacity: 0.8;
+        }
 
-        .loader { display: none; font-size: 20px; }
+        .option-letter {
+            color: #d4af37;
+            font-weight: bold;
+            margin-right: 10px;
+        }
         
-        @media (max-width: 600px) {
+        .option-btn:hover .option-letter { color: #000; }
+
+        /* Estados de respuesta */
+        .option-btn.correct {
+            background: linear-gradient(to bottom, #2ecc71, #27ae60) !important;
+            color: white !important;
+            animation: blink 0.5s 3;
+        }
+
+        .option-btn.wrong {
+            background: linear-gradient(to bottom, #e74c3c, #c0392b) !important;
+            color: white !important;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* --- PANTALLAS DE ESTADO --- */
+        .loader, .game-over {
+            text-align: center;
+            margin-top: 50px;
+        }
+        .loader { font-size: 1.5rem; color: #d4af37; }
+        
+        .game-over h2 {
+            font-size: 2rem;
+            color: #d4af37;
+            text-shadow: 0 0 10px #d4af37;
+        }
+
+        /* --- RESPONSIVE (MÓVIL) --- */
+        @media (max-width: 768px) {
+            .money-ladder { display: none; } /* Ocultar escalera lateral en móvil */
             .options-grid { grid-template-columns: 1fr; }
-            .money-ladder { position: static; margin-bottom: 10px; }
+            .question-box { padding: 20px; font-size: 1.1rem; }
+            .logo-text { font-size: 1.8rem; }
+        }
+        
+        @media (min-width: 769px) {
+            .money-ladder { display: block; }
         }
     </style>
 </head>
 <body>
 
-    <div class="money-ladder">
-        Nivel: <span id="level-display">1</span><br>
-        Premio: $<span id="prize-display">0</span>
-    </div>
-
-    <h1>¿Quién quiere ser Millonario?</h1>
-
-    <div class="game-container">
-        <div id="loader" class="loader">Cargando pregunta...</div>
+    <div class="game-wrapper">
         
-        <div id="question-area" style="display:none;">
-            <div class="question-box">
-                <p id="question-text">Pregunta aquí</p>
+        <!-- Escalera de premios lateral -->
+        <div class="money-ladder-container">
+            <div class="money-ladder" id="ladder-ui">
+                <!-- Se llena con JS -->
             </div>
 
-            <div class="options-grid">
-                <button class="option-btn" onclick="checkAnswer('A')">A: <span id="opt-a"></span></button>
-                <button class="option-btn" onclick="checkAnswer('B')">B: <span id="opt-b"></span></button>
-                <button class="option-btn" onclick="checkAnswer('C')">C: <span id="opt-c"></span></button>
-                <button class="option-btn" onclick="checkAnswer('D')">D: <span id="opt-d"></span></button>
-            </div>
-        </div>
+            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center;">
+                
+                <div class="logo-area">
+                    <h1 class="logo-text">¿QUIÉN QUIERE SER<br>MILLONARIO?</h1>
+                    <div class="logo-sub">Edición Web</div>
+                </div>
 
-        <div id="game-over" style="display:none; margin-top: 30px;">
-            <h2 id="end-message"></h2>
-            <button class="option-btn" onclick="location.reload()">Jugar de nuevo</button>
+                <div id="loader" class="loader">Cargando pregunta...</div>
+                
+                <div id="question-area" style="display:none; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                    <div class="question-container">
+                        <div class="question-box">
+                            <p id="question-text" style="margin:0;">Pregunta aquí</p>
+                        </div>
+                    </div>
+
+                    <div class="options-grid">
+                        <button class="option-btn" onclick="checkAnswer('A')"><span class="option-letter">A:</span> <span id="opt-a"></span></button>
+                        <button class="option-btn" onclick="checkAnswer('B')"><span class="option-letter">B:</span> <span id="opt-b"></span></button>
+                        <button class="option-btn" onclick="checkAnswer('C')"><span class="option-letter">C:</span> <span id="opt-c"></span></button>
+                        <button class="option-btn" onclick="checkAnswer('D')"><span class="option-letter">D:</span> <span id="opt-d"></span></button>
+                    </div>
+                </div>
+
+                <div id="game-over" class="game-over" style="display:none;">
+                    <h2 id="end-message"></h2>
+                    <button class="option-btn" onclick="location.reload()" style="text-align:center; justify-content:center; display:inline-block; width: auto; padding: 10px 30px;">Jugar de nuevo</button>
+                </div>
+
+            </div>
         </div>
     </div>
 
     <script>
         // --- CONFIGURACIÓN ---
-        const SUPABASE_URL = 'https://efxgpdbiscmsdrdlqzcv.supabase.co'; 
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmeGdwZGJpc2Ntc2RyZGxxemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNjM1NzMsImV4cCI6MjA4NzYzOTU3M30.BwxWMiaKwGoKtxSMtGCJ4PTdnuvJW-iSXtTds-Q78QE';
+        // ¡NO OLVIDES PEGAR TUS CLAVES AQUÍ!
+        const SUPABASE_URL = 'TU_SUPABASE_URL'; 
+        const SUPABASE_KEY = 'TU_SUPABASE_KEY';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // --- ESTADO DEL JUEGO ---
         let currentLevel = 1;
         let currentPrize = 0;
         let currentQuestionData = null;
+        let allLevels = []; // Para guardar la escalera de premios
 
         // --- FUNCIONES ---
+
+        async function initGame() {
+            // Cargamos todas las preguntas para construir la escalera visual
+            const { data, error } = await supabase
+                .from('preguntas')
+                .select('*')
+                .order('nivel', { ascending: true });
+
+            if (error) {
+                console.error("Error cargando preguntas:", error);
+                document.getElementById('loader').innerText = "Error de conexión con la base de datos.";
+                return;
+            }
+
+            allLevels = data;
+            buildLadderUI();
+            loadQuestion();
+        }
+
+        function buildLadderUI() {
+            const ladderContainer = document.getElementById('ladder-ui');
+            ladderContainer.innerHTML = '';
+            
+            // Invertimos el orden para que el premio mayor esté arriba
+            [...allLevels].reverse().forEach(level => {
+                const step = document.createElement('div');
+                step.className = 'ladder-step';
+                step.id = `ladder-step-${level.nivel}`;
+                step.innerHTML = `<span>${level.nivel}</span> <span>$${level.premio.toLocaleString()}</span>`;
+                ladderContainer.appendChild(step);
+            });
+        }
+
+        function updateLadderUI() {
+            // Quitar clase active de todos
+            document.querySelectorAll('.ladder-step').forEach(el => el.classList.remove('active'));
+            
+            // Activar el actual
+            const currentStep = document.getElementById(`ladder-step-${currentLevel}`);
+            if(currentStep) currentStep.classList.add('active');
+        }
 
         async function loadQuestion() {
             document.getElementById('loader').style.display = 'block';
             document.getElementById('question-area').style.display = 'none';
+            updateLadderUI();
 
-            // Buscamos la pregunta del nivel actual
-            const { data, error } = await supabase
-                .from('preguntas')
-                .select('*')
-                .eq('nivel', currentLevel)
-                .single();
+            // Buscar pregunta del nivel actual
+            const question = allLevels.find(q => q.nivel === currentLevel);
 
-            if (error || !data) {
-                endGame("¡Felicidades! ¡Has ganado el juego! (No hay más preguntas)");
+            if (!question) {
+                endGame("¡FELICIDADES! ¡ERES MILLONARIO!");
                 return;
             }
 
-            currentQuestionData = data;
+            currentQuestionData = question;
             
             // Rellenar interfaz
-            document.getElementById('question-text').innerText = data.pregunta;
-            document.getElementById('opt-a').innerText = data.opcion_a;
-            document.getElementById('opt-b').innerText = data.opcion_b;
-            document.getElementById('opt-c').innerText = data.opcion_c;
-            document.getElementById('opt-d').innerText = data.opcion_d;
+            document.getElementById('question-text').innerText = question.pregunta;
+            document.getElementById('opt-a').innerText = question.opcion_a;
+            document.getElementById('opt-b').innerText = question.opcion_b;
+            document.getElementById('opt-c').innerText = question.opcion_c;
+            document.getElementById('opt-d').innerText = question.opcion_d;
             
             document.getElementById('loader').style.display = 'none';
-            document.getElementById('question-area').style.display = 'block';
+            document.getElementById('question-area').style.display = 'flex'; // Flex para centrar
         }
 
         function checkAnswer(selectedOption) {
             const buttons = document.querySelectorAll('.option-btn');
-            // Deshabilitar botones para evitar doble click
-            buttons.forEach(btn => btn.disabled = true);
+            buttons.forEach(btn => btn.disabled = true); // Bloquear clicks
 
             if (selectedOption === currentQuestionData.correcta) {
-                // Respuesta Correcta
+                // CORRECTO
+                // Buscar el botón clickeado y ponerlo verde
                 buttons.forEach(btn => {
-                    if(btn.innerText.startsWith(selectedOption + ':')) {
+                    if(btn.innerHTML.includes(`<span class="option-letter">${selectedOption}:</span>`)) {
                         btn.classList.add('correct');
                     }
                 });
                 
                 currentPrize = currentQuestionData.premio;
-                updateUI();
                 
                 setTimeout(() => {
                     currentLevel++;
                     loadQuestion();
                 }, 2000);
             } else {
-                // Respuesta Incorrecta
+                // INCORRECTO
                 buttons.forEach(btn => {
-                    if(btn.innerText.startsWith(selectedOption + ':')) {
+                    // Marcar el que eligió mal en rojo
+                    if(btn.innerHTML.includes(`<span class="option-letter">${selectedOption}:</span>`)) {
                         btn.classList.add('wrong');
                     }
-                    // Mostrar cual era la correcta
-                    if(btn.innerText.startsWith(currentQuestionData.correcta + ':')) {
+                    // Mostrar cual era la correcta en verde
+                    if(btn.innerHTML.includes(`<span class="option-letter">${currentQuestionData.correcta}:</span>`)) {
                         btn.classList.add('correct');
                     }
                 });
                 setTimeout(() => {
-                    endGame(`¡Perdiste! Te llevas $${currentPrize}`);
-                }, 2000);
+                    endGame(`Juego Terminado. Te llevas $${currentPrize.toLocaleString()}`);
+                }, 2500);
             }
-        }
-
-        function updateUI() {
-            document.getElementById('level-display').innerText = currentLevel;
-            document.getElementById('prize-display').innerText = currentPrize;
         }
 
         function endGame(message) {
@@ -199,8 +378,8 @@
             document.getElementById('end-message').innerText = message;
         }
 
-        // Iniciar juego
-        loadQuestion();
+        // Iniciar
+        initGame();
 
     </script>
 </body>
