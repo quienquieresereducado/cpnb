@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¿Quién quiere ser Millonario?</title>
+    <!-- Librería de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background: radial-gradient(circle, #000044, #000000);
+            color: white;
+            font-family: 'Verdana', sans-serif;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 { color: #f1c40f; text-shadow: 2px 2px #000; }
+
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .money-ladder {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            font-weight: bold;
+            color: #f1c40f;
+        }
+
+        .question-box {
+            background: #000066;
+            border: 2px solid white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px rgba(255,255,255,0.2);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        button.option-btn {
+            background: linear-gradient(to bottom, #000066, #000033);
+            border: 2px solid white;
+            color: white;
+            padding: 15px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.1s;
+        }
+
+        button.option-btn:hover {
+            background: #000088;
+            transform: scale(1.02);
+        }
+
+        button.option-btn.correct { background: green !important; }
+        button.option-btn.wrong { background: red !important; }
+
+        .loader { display: none; font-size: 20px; }
+        
+        @media (max-width: 600px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .money-ladder { position: static; margin-bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="money-ladder">
+        Nivel: <span id="level-display">1</span><br>
+        Premio: $<span id="prize-display">0</span>
+    </div>
+
+    <h1>¿Quién quiere ser Millonario?</h1>
+
+    <div class="game-container">
+        <div id="loader" class="loader">Cargando pregunta...</div>
+        
+        <div id="question-area" style="display:none;">
+            <div class="question-box">
+                <p id="question-text">Pregunta aquí</p>
+            </div>
+
+            <div class="options-grid">
+                <button class="option-btn" onclick="checkAnswer('A')">A: <span id="opt-a"></span></button>
+                <button class="option-btn" onclick="checkAnswer('B')">B: <span id="opt-b"></span></button>
+                <button class="option-btn" onclick="checkAnswer('C')">C: <span id="opt-c"></span></button>
+                <button class="option-btn" onclick="checkAnswer('D')">D: <span id="opt-d"></span></button>
+            </div>
+        </div>
+
+        <div id="game-over" style="display:none; margin-top: 30px;">
+            <h2 id="end-message"></h2>
+            <button class="option-btn" onclick="location.reload()">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        const SUPABASE_URL = 'https://efxgpdbiscmsdrdlqzcv.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmeGdwZGJpc2Ntc2RyZGxxemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNjM1NzMsImV4cCI6MjA4NzYzOTU3M30.BwxWMiaKwGoKtxSMtGCJ4PTdnuvJW-iSXtTds-Q78QE';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- ESTADO DEL JUEGO ---
+        let currentLevel = 1;
+        let currentPrize = 0;
+        let currentQuestionData = null;
+
+        // --- FUNCIONES ---
+
+        async function loadQuestion() {
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('question-area').style.display = 'none';
+
+            // Buscamos la pregunta del nivel actual
+            const { data, error } = await supabase
+                .from('preguntas')
+                .select('*')
+                .eq('nivel', currentLevel)
+                .single();
+
+            if (error || !data) {
+                endGame("¡Felicidades! ¡Has ganado el juego! (No hay más preguntas)");
+                return;
+            }
+
+            currentQuestionData = data;
+            
+            // Rellenar interfaz
+            document.getElementById('question-text').innerText = data.pregunta;
+            document.getElementById('opt-a').innerText = data.opcion_a;
+            document.getElementById('opt-b').innerText = data.opcion_b;
+            document.getElementById('opt-c').innerText = data.opcion_c;
+            document.getElementById('opt-d').innerText = data.opcion_d;
+            
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('question-area').style.display = 'block';
+        }
+
+        function checkAnswer(selectedOption) {
+            const buttons = document.querySelectorAll('.option-btn');
+            // Deshabilitar botones para evitar doble click
+            buttons.forEach(btn => btn.disabled = true);
+
+            if (selectedOption === currentQuestionData.correcta) {
+                // Respuesta Correcta
+                buttons.forEach(btn => {
+                    if(btn.innerText.startsWith(selectedOption + ':')) {
+                        btn.classList.add('correct');
+                    }
+                });
+                
+                currentPrize = currentQuestionData.premio;
+                updateUI();
+                
+                setTimeout(() => {
+                    currentLevel++;
+                    loadQuestion();
+                }, 2000);
+            } else {
+                // Respuesta Incorrecta
+                buttons.forEach(btn => {
+                    if(btn.innerText.startsWith(selectedOption + ':')) {
+                        btn.classList.add('wrong');
+                    }
+                    // Mostrar cual era la correcta
+                    if(btn.innerText.startsWith(currentQuestionData.correcta + ':')) {
+                        btn.classList.add('correct');
+                    }
+                });
+                setTimeout(() => {
+                    endGame(`¡Perdiste! Te llevas $${currentPrize}`);
+                }, 2000);
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('level-display').innerText = currentLevel;
+            document.getElementById('prize-display').innerText = currentPrize;
+        }
+
+        function endGame(message) {
+            document.getElementById('question-area').style.display = 'none';
+            document.getElementById('game-over').style.display = 'block';
+            document.getElementById('end-message').innerText = message;
+        }
+
+        // Iniciar juego
+        loadQuestion();
+
+    </script>
+</body>
+</html>
