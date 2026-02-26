@@ -1,155 +1,41 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¿Quién quiere ser Millonario?</title>
-    <!-- Librería de Supabase (UNA SOLA VEZ) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Favicon para evitar el error 404 -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
-    <style>
-        body {
-            margin: 0; padding: 0;
-            background: radial-gradient(circle at center, #1a237e 0%, #0d1b2a 60%, #000 100%);
-            color: #fff; font-family: Verdana, sans-serif;
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; overflow-x: hidden;
-        }
-        .game-wrapper { width: 100%; max-width: 1000px; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .money-ladder-container { display: flex; width: 100%; justify-content: space-between; align-items: flex-start; }
-        .money-ladder { display: none; background: rgba(0,0,0,0.6); border: 1px solid #444; border-radius: 10px; padding: 10px; width: 150px; text-align: right; }
-        .ladder-step { padding: 2px 5px; font-size: 0.9rem; color: #d4af37; display: flex; justify-content: space-between; }
-        .ladder-step.active { background: #d4af37; color: #000; font-weight: bold; border-radius: 4px; }
-        .logo-area { text-align: center; margin-bottom: 20px; }
-        .logo-text { font-size: 2.5rem; font-weight: bold; color: #fff; text-shadow: 0 0 10px #d4af37, 0 0 20px #d4af37; letter-spacing: 2px; margin: 0; }
-        .logo-sub { color: #d4af37; font-size: 1rem; letter-spacing: 5px; text-transform: uppercase; }
-        .question-container { width: 100%; max-width: 800px; margin-bottom: 30px; }
-        .question-box { background: linear-gradient(to bottom, #000046, #000); border: 2px solid #fff; border-radius: 50px; padding: 30px 50px; text-align: center; font-size: 1.3rem; box-shadow: 0 0 15px rgba(255,255,255,0.3); position: relative; }
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 800px; }
-        .option-btn { background: linear-gradient(to bottom, #000066, #000022); border: 2px solid #fff; color: #fff; padding: 15px 20px; border-radius: 30px; cursor: pointer; font-size: 1.1rem; font-family: Verdana, sans-serif; text-align: left; transition: all 0.2s; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-        .option-btn:hover:not(:disabled) { background: linear-gradient(to bottom, #d4af37, #b8860b); color: #000; }
-        .option-btn:disabled { cursor: default; opacity: 0.8; }
-        .option-letter { color: #d4af37; font-weight: bold; margin-right: 10px; }
-        .option-btn:hover .option-letter { color: #000; }
-        .option-btn.correct { background: linear-gradient(to bottom, #2ecc71, #27ae60) !important; color: #fff !important; animation: blink 0.5s 3; }
-        .option-btn.wrong { background: linear-gradient(to bottom, #e74c3c, #c0392b) !important; color: #fff !important; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .loader, .game-over { text-align: center; margin-top: 50px; }
-        .loader { font-size: 1.5rem; color: #d4af37; }
-        .game-over h2 { font-size: 2rem; color: #d4af37; text-shadow: 0 0 10px #d4af37; }
-        @media (max-width: 768px) { .money-ladder { display: none; } .options-grid { grid-template-columns: 1fr; } .question-box { padding: 20px; font-size: 1.1rem; } .logo-text { font-size: 1.8rem; } }
-        @media (min-width: 769px) { .money-ladder { display: block; } }
-    </style>
+  <meta charset="UTF-8">
+  <title>Prueba Supabase</title>
+  <!-- Librería externa -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="game-wrapper">
-        <div class="money-ladder-container">
-            <div class="money-ladder" id="ladder-ui"></div>
-            <div style="flex-grow:1; display:flex; flex-direction:column; align-items:center;">
-                <div class="logo-area">
-                    <h1 class="logo-text">¿QUIÉN QUIERE SER<br>MILLONARIO?</h1>
-                    <div class="logo-sub">Edición Web</div>
-                </div>
-                <div id="loader" class="loader">Cargando pregunta...</div>
-                <div id="question-area" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
-                    <div class="question-container">
-                        <div class="question-box"><p id="question-text" style="margin:0;">Pregunta aquí</p></div>
-                    </div>
-                    <div class="options-grid">
-                        <button class="option-btn" onclick="checkAnswer('A')"><span class="option-letter">A:</span> <span id="opt-a"></span></button>
-                        <button class="option-btn" onclick="checkAnswer('B')"><span class="option-letter">B:</span> <span id="opt-b"></span></button>
-                        <button class="option-btn" onclick="checkAnswer('C')"><span class="option-letter">C:</span> <span id="opt-c"></span></button>
-                        <button class="option-btn" onclick="checkAnswer('D')"><span class="option-letter">D:</span> <span id="opt-d"></span></button>
-                    </div>
-                </div>
-                <div id="game-over" class="game-over" style="display:none;">
-                    <h2 id="end-message"></h2>
-                    <button class="option-btn" onclick="location.reload()" style="text-align:center; display:inline-block; width:auto; padding:10px 30px;">Jugar de nuevo</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ⚠️ CONFIGURACIÓN: PEGA TUS CLAVES AQUÍ ABAJO
+  <h1 id="resultado">Probando conexión...</h1>
+  
+  <script>
+    // === IIFE: Función autoejecutable para aislar el código ===
+    (async function() {
+      try {
+        // 1. TUS CLAVES (Reemplaza solo esto)
         const SUPABASE_URL = 'https://efxgpdbiscmsdrdlqzcv.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmeGdwZGJpc2Ntc2RyZGxxemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNjM1NzMsImV4cCI6MjA4NzYzOTU3M30.BwxWMiaKwGoKtxSMtGCJ4PTdnuvJW-iSXtTds-Q78QE';
+
+        // 2. Conexión segura (usamos 'client' en vez de 'supabase' para evitar conflictos)
+        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 3. Prueba de conexión
+        const { data, error } = await client.from('preguntas').select('id').limit(1);
         
-        // Inicializar Supabase (solo una vez)
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let currentLevel = 1;
-        let currentPrize = 0;
-        let currentQuestionData = null;
-        let allLevels = [];
-
-        async function initGame() {
-            const { data, error } = await supabase.from('preguntas').select('*').order('nivel', { ascending: true });
-            if (error) { console.error(error); document.getElementById('loader').innerText = "Error de conexión"; return; }
-            allLevels = data;
-            buildLadderUI();
-            loadQuestion();
+        const resultado = document.getElementById('resultado');
+        if (error) {
+          resultado.innerText = '❌ Error: ' + error.message;
+          resultado.style.color = 'red';
+        } else {
+          resultado.innerText = '✅ ¡ÉXITO! Conectado. Preguntas encontradas: ' + (data?.length || 0);
+          resultado.style.color = 'green';
         }
-
-        function buildLadderUI() {
-            const container = document.getElementById('ladder-ui');
-            container.innerHTML = '';
-            [...allLevels].reverse().forEach(lvl => {
-                const step = document.createElement('div');
-                step.className = 'ladder-step';
-                step.id = `ladder-step-${lvl.nivel}`;
-                step.innerHTML = `<span>${lvl.nivel}</span> <span>$${lvl.premio.toLocaleString()}</span>`;
-                container.appendChild(step);
-            });
-        }
-
-        function updateLadderUI() {
-            document.querySelectorAll('.ladder-step').forEach(el => el.classList.remove('active'));
-            const active = document.getElementById(`ladder-step-${currentLevel}`);
-            if (active) active.classList.add('active');
-        }
-
-        async function loadQuestion() {
-            document.getElementById('loader').style.display = 'block';
-            document.getElementById('question-area').style.display = 'none';
-            updateLadderUI();
-            const q = allLevels.find(x => x.nivel === currentLevel);
-            if (!q) { endGame("¡FELICIDADES! ¡ERES MILLONARIO!"); return; }
-            currentQuestionData = q;
-            document.getElementById('question-text').innerText = q.pregunta;
-            document.getElementById('opt-a').innerText = q.opcion_a;
-            document.getElementById('opt-b').innerText = q.opcion_b;
-            document.getElementById('opt-c').innerText = q.opcion_c;
-            document.getElementById('opt-d').innerText = q.opcion_d;
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('question-area').style.display = 'flex';
-        }
-
-        function checkAnswer(selected) {
-            const btns = document.querySelectorAll('.option-btn');
-            btns.forEach(b => b.disabled = true);
-            if (selected === currentQuestionData.correcta) {
-                btns.forEach(b => { if(b.innerHTML.includes(`<span class="option-letter">${selected}:</span>`)) b.classList.add('correct'); });
-                currentPrize = currentQuestionData.premio;
-                setTimeout(() => { currentLevel++; loadQuestion(); }, 2000);
-            } else {
-                btns.forEach(b => {
-                    if(b.innerHTML.includes(`<span class="option-letter">${selected}:</span>`)) b.classList.add('wrong');
-                    if(b.innerHTML.includes(`<span class="option-letter">${currentQuestionData.correcta}:</span>`)) b.classList.add('correct');
-                });
-                setTimeout(() => endGame(`Juego terminado. Te llevas $${currentPrize.toLocaleString()}`), 2500);
-            }
-        }
-
-        function endGame(msg) {
-            document.getElementById('question-area').style.display = 'none';
-            document.getElementById('game-over').style.display = 'block';
-            document.getElementById('end-message').innerText = msg;
-        }
-
-        // Iniciar
-        initGame();
-    </script>
+      } catch (e) {
+        document.getElementById('resultado').innerText = '💥 Error fatal: ' + e.message;
+        console.error(e);
+      }
+    })(); // <--- Fin de la función autoejecutable
+  </script>
 </body>
 </html>
